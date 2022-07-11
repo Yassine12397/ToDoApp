@@ -23,6 +23,8 @@ environment:
 dependencies:
   conditional_builder_null_safety: ^0.0.6
   intl: ^0.17.0
+  bloc: ^8.0.3
+  flutter_bloc: ^8.0.1
   sqflite: ^2.0.2
   flutter:
     sdk: flutter
