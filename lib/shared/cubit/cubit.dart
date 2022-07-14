@@ -23,7 +23,9 @@ class AppCubit extends Cubit<AppStates> {
     'Archived Tasks',
   ];
   late Database database;
-  List<Map> tasks = [];
+  List<Map> Newtasks = [];
+  List<Map> Donetasks = [];
+  List<Map> Archivetasks = [];
   bool isBottomSheetShown = false;
   IconData fabIcon = Icons.edit;
 
@@ -31,8 +33,8 @@ class AppCubit extends Cubit<AppStates> {
     required bool isShow,
     required IconData icon,
   }) {
-    isBottomSheetShown=isShow;
-    fabIcon=icon;
+    isBottomSheetShown = isShow;
+    fabIcon = icon;
     emit(AppBottomSheetState());
   }
 
@@ -53,11 +55,7 @@ class AppCubit extends Cubit<AppStates> {
       });
       print('Database created');
     }, onOpen: (database) {
-      getDataFromDatabase(database).then((value) {
-        tasks = value;
-        print(tasks);
-        emit(AppGetDatabaseState());
-      });
+      getDataFromDatabase(database);
       print('Database opened');
     }).then((value) {
       database = value;
@@ -65,31 +63,52 @@ class AppCubit extends Cubit<AppStates> {
     });
   }
 
-   InsertToDatabase({
+  InsertToDatabase({
     required String title,
     required String time,
     required String date,
   }) async {
- await database.transaction((txn) {
+    await database.transaction((txn) {
       return txn
           .rawInsert(
               'INSERT INTO tasks (title,date,time,status) VALUES ("$title","$date","$time","new")')
           .then((value) {
         print('$value inserted successfully');
         emit(AppInsertDatabaseState());
-        getDataFromDatabase(database).then((value) {
-          tasks = value;
-          print(tasks);
-          emit(AppGetDatabaseState());
-        });
+        getDataFromDatabase(database);
       }).catchError((error) {
         print('Error when inserting new record ${error.toString()}');
       });
     });
   }
 
-  Future<List<Map>> getDataFromDatabase(database) async {
+  void getDataFromDatabase(database)  {
+    Newtasks=[];
+    Donetasks=[];
+    Archivetasks=[];
     emit(AppGetDatabaseLoadingState());
-    return await database.rawQuery('SELECT * FROM Tasks');
+  database.rawQuery('SELECT * FROM Tasks').then((value) {
+
+    value.forEach((element) {
+      if(element['status']=='new') Newtasks.add(element);
+      else if (element['status']=='done') Donetasks.add(element);
+      else Archivetasks.add(element);
+    });
+    emit(AppGetDatabaseState());
+  });;
+  }
+
+  void updateData({
+    required String status,
+    required int id,
+  }) async {
+   database.rawUpdate(
+      'UPDATE Tasks SET status=? WHERE id=?',
+      ['$status',id],
+    ).then((value)
+   {
+     getDataFromDatabase(database);
+     emit(AppUpdateDatabaseState());
+   });
   }
 }
